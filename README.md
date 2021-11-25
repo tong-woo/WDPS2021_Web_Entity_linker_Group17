@@ -22,9 +22,7 @@ To parse this WARC file we first split it into a sequence of lines in which each
 
 For the text extraction part, the main task is to extract the text from the html documents that we obtained from the warc parser stage. In this part, what we mainly do is to filter the HTML tags and leave the text of the html.
 
-To remove the label of the html and leave the text we want, we use three libraries to extract the text,including BeautifulSoup4, PyQuery and HtmlParser. By comparing and testing the time of extracting text of the html, which Selectolax > Pyquery > BeautifulSoup, as the stability of pyquery is much lower than the other two, which may result in a decoding error. We finally decided to take Selectolax and BeautifulSoup due to its high speed and efficiency.
-
-Before transmitting the string result to the Entity Recognition Phase, we cleaned the text by removing URLs, Hashtags and special characters (e.g. tabs) from the raw text using regular expressions. 
+To remove the label of the html and leave the text we want, we use BeautifulSoup4 to parse the HTML tree and extract the text content without the HTML tags. Before transmitting the string result to the Entity Recognition Phase, we cleaned the text by removing URLs, Hashtags and special characters (e.g. tabs) from the raw text using regular expressions. 
 
 ### 2.3. Entity Recognition
 
@@ -50,6 +48,8 @@ Finally, we seek for the **entity relationships with the entities already found*
 
 We prioritize the ranking of our third metric over our second metric. If no relationships can be found, we use the ranking of our second metric (i.e. popularity). The top ranked entity is selected as the best entity and is prepared to be written on the output.
 
+In addition to this we also directly select entities based on the **same context principle**. That is, if an entity has been already disambiguated in the same page, we will use the previously chosen candidate.
+
 **Other techniques:** We tried validating spaCy entity types output with Wikidata relations (e.g. PERSONS spaCy entities must be an *instanceOf* Human in wikidata). However, entities such as **Flash Player** being recognized as **PERSONS** were diminishing the accuracy of our implementation. Hence, we decided not to use this approach. 
 
 ### 2.5. Output Write
@@ -71,5 +71,4 @@ To run our code, follow these steps:
 
 ## 4. Limitations
 
-After inspection of our results we found out that spaCy is not good at detecting religious entities (e.g. God, Holy Spirit). In addition to this, we did not find a way to discard non-existing entities (e.g. Non-famous humans who are not in wikipedia) other than the cosine similarity filtering. 
-
+After inspection of our results we found out that spaCy is not good at detecting religious entities (e.g. God, Holy Spirit). In addition to this, we did not find a way to discard non-existing entities (e.g. Non-famous humans who are not in wikipedia) other than the cosine similarity filtering. Finally, our execution speed is not optimal due to the use of Virtuoso external server. 
