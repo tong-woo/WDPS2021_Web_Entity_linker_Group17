@@ -10,7 +10,7 @@ To implement this entity linker, we developed a pipeline which contains several 
 
 As the diagram above shows, our pipeline firstly reads the WARC file to parse and clean the content, aiming to obtain cleaned text. Then the cleaned text will be passed to the entity extraction phase to recognize entities using NER tools. After this, these entities are used as input for ElasticSearch to query for entity candidates. Entity candidates are ranked and disambiguated before being written to the final output file. In the following sections, we will explain each stage of the pipeline in detail.
 
-![WDPS.pipeline](/Users/ice/Downloads/WDPS.pipeline.png)
+![img](https://lh6.googleusercontent.com/_jwjcSIJ8RPNywvn1lSesF7nPuexusfghxz7r95oIwS7B_BXoEfgDfmsByF5WtyFNfOZLYhCNnQlDYuvcdfrWmHOrM7NUdPa7gcI4JH8Pc9mJlUmVsDsmsCqYkkuM5ARc2dZv4hf)
 
 ### 2.1. WARC Reading
 
@@ -72,3 +72,4 @@ To run our code, follow these steps:
 ## 4. Limitations
 
 After inspection of our results we found out that spaCy is not good at detecting religious entities (e.g. God, Holy Spirit). In addition to this, we did not find a way to discard non-existing entities (e.g. Non-famous humans who are not in wikipedia) other than the cosine similarity filtering. 
+
