@@ -22,7 +22,7 @@ To parse this WARC file we first split it into a sequence of lines in which each
 
 For the text extraction part, the main task is to extract the text from the html documents that we obtained from the warc parser stage. In this part, what we mainly do is to filter the HTML tags and leave the text of the html.
 
-To remove the label of the html and leave the text we want, we use BeautifulSoup4 to parse the HTML tree and extract the text content without the HTML tags. Before transmitting the string result to the Entity Recognition Phase, we cleaned the text by removing URLs, Hashtags and special characters (e.g. tabs) from the raw text using regular expressions. 
+To remove the label of the html and leave the text we want, we use BeautifulSoup4 to parse the HTML tree and extract the text content without the HTML tags. Before transmitting the string result to the Entity Recognition Phase, we cleaned the text by removing URLs, Hashtags and special characters (e.g. tabs) from the raw text using regular expressions. For this part, we also tested selectolax and pyQuery but found out that BeautifoulSoup was yielding the best results and provide the most simple way to do the text extraction.
 
 ### 2.3. Entity Recognition
 
@@ -38,19 +38,15 @@ To obtain candidates, we use ElasticSearch to query the candidate entities' labe
 
 #### 2.4.2 Candidates Ranking and Selection
 
-To select a proper entity we must rank the candidates obtained from the previous step. Therefore, we need ranking criteria. We used three ranking criteria: 1) Cosine Similarity of the Word Embeddings Vectors, 2) Entities Popularity, and 3) Entities Relationships with their Context.
+To select a proper entity we must rank the candidates obtained from the previous step. Therefore, we need ranking criteria. We used two ranking criteria: 1) Cosine Similarity of the Word Embeddings Vectors and 2) Entities Popularity.
 
 First, we obtain the **Word Embeddings Vectors** from the entities inside the context in which they appear, and the vector from the isolated term label obtained from ElasticSearch. spaCy implements word embeddings vectors natively when analyzing any piece of text. Next we compute the cosine similarity between these two vectors and filter out all the vectors with a similarity lower than 0.80. The remaining entities are subject to the next two ranking criteria. This threshold was obtained by trial and error using the provided sample WARC file and sample output annotations. 
 
+Furthermore, if we find exact matches of labels between the found entity and the elastic search label, we then prioritize these exact matches and discard other candidates. All the exact matches will then go to the next step of disambiguation. An exact match is two words in which each letter of each position is equal.
+
 For our second ranking criteria we compute the **entity's popularity**. In order to do this, we use the Wikidata knowledge base (KB) and SPARQL to query the KB. We defined the popularity of an entity as the number of triplets this entity has in the KB. We hypothesize that a more popular entity will have more triplets than a less popular entity. Each triplet found gives a +1 to the candidate. Queries to Wikidata KB were done through the **Virtuoso** server provided by the course professor. 
 
-Finally, we seek for the **entity relationships with the entities already found** in the context. To do this we also queried into SPARQL to find relationships between the candidate entity and all the entities already found. For each relation found we give a +1 score to the candidate. Queries to Wikidata KB were done through the **Virtuoso** server provided by the course professor.
-
-We prioritize the ranking of our third metric over our second metric. If no relationships can be found, we use the ranking of our second metric (i.e. popularity). The top ranked entity is selected as the best entity and is prepared to be written on the output.
-
-In addition to this we also directly select entities based on the **same context principle**. That is, if an entity has been already disambiguated in the same page, we will use the previously chosen candidate.
-
-**Other techniques:** We tried validating spaCy entity types output with Wikidata relations (e.g. PERSONS spaCy entities must be an *instanceOf* Human in wikidata). However, entities such as **Flash Player** being recognized as **PERSONS** were diminishing the accuracy of our implementation. Hence, we decided not to use this approach. 
+**Other tried techniques:** We tried validating spaCy entity types output with Wikidata relations (e.g. PERSONS spaCy entities must be an *instanceOf* Human in wikidata). However, entities such as **Flash Player** being recognized as **PERSONS** were diminishing the accuracy of our implementation. Hence, we decided not to use this approach. We also tried seeking for the **entity relationships with the entities already found** in the context and using this as a third ranking criteria, however our results were not positively impacted by this technique.
 
 ### 2.5. Output Write
 
@@ -60,15 +56,25 @@ After having our best ranked entities selected we generate an output file. This 
 
 To run our code, follow these steps:
 
-1. Install the needed dependencies: `pip install requirements.txt`
+1. Upgrade pip: `pip3 install --upgrade pip`
 
-2. Run the code: Two alternatives
+2. Install the needed dependencies: `pip3 install -r requirements.txt`
 
-   - You can run the code by running the .sh file which assumes the following paths for input and output respectively:  `data/sample.warc.gz  sample_predictions.tsv`. And for the scoring input and output: `data/sample_annotations.tsv sample_predictions.tsv`
+3. Start elastic search local server `sh es/start_elasticsearch_server.sh`. Wait a few seconds until elastic search is started.
+
+4. Run the code: Two alternatives
+
+   - SH File (Entity Linker + Score): You can run the code by running the `sh main.sh` file which assumes the following paths for input and output respectively:  `data/sample.warc.gz  sample_predictions.tsv`. And for the scoring input and output: `data/sample_annotations.tsv sample_predictions.tsv`. This will execute the Entity Linker and the `score.py` file to calculate accuracy, recall and f1 score.
 
 
-   - You can also run the code by running `python3 main.py data/sample.warc.gz`. The latter parameter is the input of the WARC file. Then run `python3 score.py data/sample_annotations.tsv sample_predictions.tsv`. The latter parameters are the expected samples and the output file of the *main.py* program respectively.
+   - Separately: You can also run the code separately by running `python3 main.py data/sample.warc.gz`. The latter parameter is the input of the WARC file. Then run `python3 score.py data/sample_annotations.tsv sample_predictions.tsv`. The latter parameters are the expected samples and the output file of the *main.py* program respectively. 
 
-## 4. Limitations
+5. NOTES: 1) On the first run, the program will download about 800MB of data corresponding to the spaCy models. 2) The program needs at least 1GB of free memory to load the spaCy models. 3) At runtime, the program will print on screen each of the entities found in the following format: wikidataID, entity label, ES score, ES entity label. This is not the file output, it is only a runtime output to give feedback to the user.
+
+## 4. Concurrency
+
+Our program tries to scalate by using multiprocessing when disambiguating entities. It disambiguates 30 parallel entities (at most) at a time. The latter parameter is configurable
+
+## 5. Limitations
 
 After inspection of our results we found out that spaCy is not good at detecting religious entities (e.g. God, Holy Spirit). In addition to this, we did not find a way to discard non-existing entities (e.g. Non-famous humans who are not in wikipedia) other than the cosine similarity filtering. Finally, our execution speed is not optimal due to the use of Virtuoso external server. 

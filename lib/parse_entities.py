@@ -36,7 +36,7 @@ except: # If they are not present, we must download
     spacy.cli.download("en_core_web_lg")
     nlp = spacy.load("en_core_web_lg")
 
-# Process whole documents
+# Process files
 def spacy_ner_from_file(file_location):
     with open(file_location) as sample:
         doc = nlp(sample.read())
@@ -45,6 +45,7 @@ def spacy_ner_from_file(file_location):
         entities_list = doc.ents
     return entities_list
 
+# Process text
 def spacy_ner_from_text(raw_text):
     if (raw_text == None or len(raw_text) < 1):
         return None
@@ -54,6 +55,7 @@ def spacy_ner_from_text(raw_text):
     entities_list = doc.ents
     return entities_list
 
+# Convert entities list to a dictionary like format
 def spacy_dictionary(entities_list):
     dic = {}
     i = 0
@@ -62,15 +64,15 @@ def spacy_dictionary(entities_list):
         dic['Entity {}'.format(i)] = (entity.text, entity.label_, entity.vector)
     return dic
 
+# Receive a piece of text and returns spaCy recognized entities
 def parse_entities(raw_text):
     entities_list = []
-    text_splitted = raw_text.split('\n')
+    text_splitted = raw_text.split('\n') # We split webpages paragraphs for spaCy to have better accuracy
     for segment in text_splitted:
-        # We ignore segments of the webpage with less than 5 characters
+        # We ignore paragraphs of the webpage with less than 5 characters
         if (len(segment) < 5):
             continue
         segment_entities_list = spacy_ner_from_text(segment)
-        #print (segment_entities_list)
         if segment_entities_list != None and len(segment_entities_list) > 0:
             entities_list += segment_entities_list
     entities_list = spacy_ner_from_text(raw_text)

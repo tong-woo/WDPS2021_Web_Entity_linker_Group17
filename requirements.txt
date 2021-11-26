@@ -1,9 +1,7 @@
 beautifulsoup4==4.10.0
 elasticsearch==7.15.2
-pyquery==1.4.3
 requests==2.26.0
 scipy==1.7.3
-selectolax==0.3.6
 spacy==3.2.0
 trident==1.2.3
 warcio==1.7.4

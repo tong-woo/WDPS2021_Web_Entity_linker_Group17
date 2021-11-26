@@ -37,28 +37,29 @@ if __name__ == '__main__':
         sys.exit(0)
 
     f = open(OUTPUT_FILE, 'w')
-    i = 0
+    # Parse INPUT WARC file
     for html_prase, page_id in get_html_warc(INPUT):
         try: 
+            # Extract and clean HTML text 
             raw_text = text_extract(html_prase)
             raw_text = clean_text(raw_text)
-            #print (raw_text)
 
+            # Entity recognition
             entities = _parse_entities(raw_text)
             if (entities == None or len(entities) < 1):
                 continue
-            #print (entities)
-
+            
+            # Candidates generation
             wiki_entities = _search_entities(entities)
             if (wiki_entities == None or len(wiki_entities) < 1):
                 continue
 
+            # Candidates dissambiguation
             final_entities = _disambiguate_entities(raw_text, wiki_entities, "popularity")
-            #print(final_entities)
+
             write_result(f, final_entities, page_id)
 
         except Exception as e:
             traceback.print_exc()
             print (e)
-        i += 1
     f.close()

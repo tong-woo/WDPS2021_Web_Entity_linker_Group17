@@ -34,6 +34,7 @@ def search_entities(query):
                 "size": 20
             }
             # Query candidates to elasticsearch
+            found_perfect_match = False
             response = e.search(index="wikidata_en", body=json.dumps(p))
             if response and response['hits'] and response['hits']['hits']:
                 for hit in response['hits']['hits']:
@@ -41,7 +42,7 @@ def search_entities(query):
                     if ('schema_name' in hit['_source']):
                         label_es = hit['_source']['schema_name'].replace("\n", "").replace("\t", "")
                     else:
-                        label_es = label
+                        continue
                     id_es = hit['_id']
 
                     # We obtain the word embeddings vector of the out of context term
@@ -50,8 +51,14 @@ def search_entities(query):
                     cosine_similarity = 1 - spatial.distance.cosine(vector_es, label_vector)
                     #print(label, label_es, cosine_similarity, score_es)
 
+                    if (label_es.lower() == label.lower()):
+                        if found_perfect_match == False:
+                            found_perfect_match = True
+                            wikidata_entities[entityId] = []
+                        wikidata_entities[entityId].append([id_es, label_es, score_es, label, label_type])
+
                     # Treshhold to be considered as a candidate
-                    if cosine_similarity < 0.80:
+                    if cosine_similarity < 0.80 or found_perfect_match:
                         continue
 
                     if (entityId not in wikidata_entities):
