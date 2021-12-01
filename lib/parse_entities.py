@@ -4,7 +4,7 @@
 @author Group 17-Tong Wu(t3.wu@student.vu.nl 2734542)
 @Create 11-14-2021 16:00 PM
 This is a NER Candidate used in wdps assignment1 Entity linker
-Spacy NER
+spaCy NER framework
 """
 import spacy
 
